@@ -20,7 +20,7 @@
 #include "llvm/PassManager.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ExecutionEngine/GenericValue.h"
-#include "llvm/ExecutionEngine/JIT.h"
+#include "llvm/ExecutionEngine/MCJIT.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/DynamicLibrary.h"
 
@@ -101,6 +101,7 @@ std::vector<IncrementalExecutor::LazyFunctionCreatorFunc_t>
   builder.setErrorStr(&errMsg);
   builder.setOptLevel(llvm::CodeGenOpt::Less);
   builder.setEngineKind(llvm::EngineKind::JIT);
+  builder.setUseMCJIT(true);
   builder.setAllocateGVsWithCode(false);
 
   // EngineBuilder uses default c'ted TargetOptions, too:
