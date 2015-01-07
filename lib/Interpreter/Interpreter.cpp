@@ -1151,7 +1151,7 @@ namespace cling {
     assert(T.getState() == Transaction::kCommitted && "Must be committed");
     // Forward to IncrementalExecutor; should not be called by
     // anyone except for IncrementalParser.
-    llvm::Module* module = m_IncrParser->getCodeGenerator()->GetModule();
+    llvm::Module* module = T.getModule();
     IncrementalExecutor::ExecutionResult ExeRes
        = m_Executor->runStaticInitializersOnce(module);
 
@@ -1175,6 +1175,11 @@ namespace cling {
 
     return m_Executor->addSymbol(symbolName, symbolAddress);
   }
+
+  void Interpreter::addModule(llvm::Module* module) {
+    m_Executor->addModule(module);
+  }
+
 
   void* Interpreter::getAddressOfGlobal(const GlobalDecl& GD,
                                         bool* fromJIT /*=0*/) const {

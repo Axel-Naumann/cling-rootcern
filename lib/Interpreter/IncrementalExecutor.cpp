@@ -263,7 +263,7 @@ IncrementalExecutor::executeFunction(llvm::StringRef funcname,
     PromptWrapper_t wrapperFunction;
     void* address;
   } p2f;
-  p2f.address = m_engine->getPointerToFunction(f);
+  p2f.address = (void*)m_engine->getFunctionAddress(funcname);
 
   // check if there is any unresolved symbol in the list
   if (diagnoseUnresolvedSymbols(funcname, "function"))
@@ -279,6 +279,8 @@ IncrementalExecutor::ExecutionResult
 IncrementalExecutor::runStaticInitializersOnce(llvm::Module* m) {
   assert(m && "Module must not be null");
   assert(m_engine && "Code generation did not create an engine!");
+
+  m_engine->finalizeObject();
 
   llvm::GlobalVariable* GV
      = m->getGlobalVariable("llvm.global_ctors", true);
@@ -402,6 +404,11 @@ IncrementalExecutor::addSymbol(const char* symbolName,  void* symbolAddress) {
   llvm::sys::DynamicLibrary::AddSymbol(symbolName, symbolAddress);
   return true;
 }
+
+void IncrementalExecutor::addModule(llvm::Module* module) {
+  m_engine->addModule(module);
+}
+
 
 void* IncrementalExecutor::getAddressOfGlobal(llvm::Module* m,
                                               llvm::StringRef symbolName,
