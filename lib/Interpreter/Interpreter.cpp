@@ -969,6 +969,20 @@ namespace cling {
     Diags.setSeverity(clang::diag::ext_return_has_expr,
                       clang::diag::Severity::Ignored, SourceLocation());
     if (Transaction* lastT = m_IncrParser->Compile(Wrapper, CO)) {
+
+      assert((lastT->getState() == Transaction::kCommitted
+              || lastT->getState() == Transaction::kRolledBack
+              || lastT->getState() == Transaction::kRolledBackWithErrors)
+             && "Not committed?");
+
+      if (lastT->getIssuedDiags() == Transaction::kErrors
+          || lastT->getState() != Transaction::kCommitted) {
+         if (V)
+            *V = Value();
+
+         return Interpreter::kFailure;
+      }
+
       Loc = m_IncrParser->getLastMemoryBufferEndLoc().getLocWithOffset(1);
       // if the location was the same we are in recursive calls and to avoid an
       // assert in clang we should increment by a value.
@@ -979,32 +993,25 @@ namespace cling {
       m_LastCustomPragmaDiagPopPoint = Loc.getRawEncoding();
 
       Diags.popMappings(Loc);
-      assert((lastT->getState() == Transaction::kCommitted
-              || lastT->getState() == Transaction::kRolledBack)
-             && "Not committed?");
-      if (lastT->getIssuedDiags() != Transaction::kErrors) {
-        Value resultV;
-        if (!V)
-          V = &resultV;
-        if (!lastT->getWrapperFD()) // no wrapper to run
-          return Interpreter::kSuccess;
-        else if (RunFunction(lastT->getWrapperFD(), V) < kExeFirstError){
-          if (lastT->getCompilationOpts().ValuePrinting
-              != CompilationOptions::VPDisabled
-              && V->isValid()
-              // the !V->needsManagedAllocation() case is handled by
-              // dumpIfNoStorage.
-              && V->needsManagedAllocation())
-            V->dump();
-          return Interpreter::kSuccess;
-        }
-      }
-      if (V)
-        *V = Value();
 
-      return Interpreter::kFailure;
+      Value resultV;
+      if (!V)
+         V = &resultV;
+      if (!lastT->getWrapperFD()) // no wrapper to run
+         return Interpreter::kSuccess;
+      else if (RunFunction(lastT->getWrapperFD(), V) < kExeFirstError){
+         if (lastT->getCompilationOpts().ValuePrinting
+             != CompilationOptions::VPDisabled
+             && V->isValid()
+             // the !V->needsManagedAllocation() case is handled by
+             // dumpIfNoStorage.
+             && V->needsManagedAllocation())
+            V->dump();
+         return Interpreter::kSuccess;
+      }
     }
     Diags.popMappings(Loc.getLocWithOffset(1));
+
     return Interpreter::kSuccess;
   }
 
