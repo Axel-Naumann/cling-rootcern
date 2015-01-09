@@ -187,7 +187,6 @@ namespace cling {
     m_ASTTransformers.push_back(new CheckEmptyTransactionTransformer(TheSema));
 
 
-#ifdef _LIBCPP_VERSION
     // libc++ relies on force_inline attributes, else symbols will be missing.
     // But its passes (CallGraph and Inliner) - being module passes - have a
     // quadratically increasing runtime: for each transaction they need to
@@ -203,7 +202,6 @@ namespace cling {
                                                  CI->getLangOpts(),
                                                  CI->getCodeGenOpts()));
     }
-#endif
   }
 
   void
