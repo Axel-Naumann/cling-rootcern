@@ -167,7 +167,6 @@ namespace cling {
     if (CI->getFrontendOpts().ProgramAction != clang::frontend::ParseSyntaxOnly){
       m_CodeGen.reset(CreateLLVMCodeGen(CI->getDiagnostics(), "cling-module-0",
                                         CI->getCodeGenOpts(),
-                                        CI->getTargetOpts(),
                                         *m_Interpreter->getLLVMContext()
                                         ));
     }
@@ -467,7 +466,7 @@ namespace cling {
       }
       else if (I.m_Call == Transaction::kCCIHandleVTable) {
         CXXRecordDecl* CXXRD = cast<CXXRecordDecl>(I.m_DGR.getSingleDecl());
-        getCodeGenerator()->HandleVTable(CXXRD, /*isRequired*/true);
+        getCodeGenerator()->HandleVTable(CXXRD);
       }
       else if (I.m_Call
                == Transaction::kCCIHandleCXXImplicitFunctionInstantiation) {
@@ -533,7 +532,7 @@ namespace cling {
         }
         else if (I->m_Call == Transaction::kCCIHandleVTable) {
           CXXRecordDecl* CXXRD = cast<CXXRecordDecl>(*DI);
-          getCodeGenerator()->HandleVTable(CXXRD, /*isRequired*/true);
+          getCodeGenerator()->HandleVTable(CXXRD);
         }
         else if (I->m_Call
                  == Transaction::kCCIHandleCXXImplicitFunctionInstantiation) {
