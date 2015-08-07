@@ -345,6 +345,139 @@ static void StreamValue(llvm::raw_ostream& o, const void* V,
 }
 
 namespace cling {
+
+  std::string printValue(void* ptr) {
+    std::ostringstream strm;
+    if (!ptr) {
+      strm << "<<NULL>>";
+    } else {
+      strm << ptr;
+    }
+    return strm.str();
+  }
+
+  // Bool
+  std::string printValue(const bool val) {
+    std::ostringstream strm;
+    strm << std::boolalpha;
+    strm << val;
+    strm << std::noboolalpha;
+    return strm.str();
+  }
+
+  // Chars
+  std::string printValue(const char val) {
+    std::ostringstream strm;
+    if (val > 0x1F && val < 0x7F) strm << "'" << val << "'";
+    else strm << "0x" << std::hex << (int) val << std::dec;
+    return strm.str();
+  }
+
+  std::string printValue(const signed char val) {
+    return printValue((const char) val);
+  }
+
+  std::string printValue(const unsigned char val) {
+    return printValue((const char) val);
+  }
+
+  // Ints
+  std::string printValue(const short val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  std::string printValue(const unsigned short val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  std::string printValue(const int val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  std::string printValue(const unsigned int val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  std::string printValue(const long val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  std::string printValue(const unsigned long val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  std::string printValue(const long long val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  std::string printValue(const unsigned long long val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  std::string printValue(const float val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  std::string printValue(const double val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  std::string printValue(const long double val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+
+  // Char pointers
+  std::string printValue(const char *const val) {
+    std::ostringstream strm;
+    if (!val) {
+      strm << "<<NULL>>";
+    } else {
+      const char *cobj = val;
+      int i = 0;
+      strm << "\"";
+      while (*cobj != 0) {
+        strm << *cobj;
+        cobj++;
+        i++;
+      }
+      strm << "\"";
+    }
+    return strm.str();
+  }
+
+  std::string printValue(char *val) {
+    return printValue((const char *const) val);
+  }
+
+  // std::string
+  std::string printValue(const std::string & val) {
+    std::ostringstream strm;
+    strm << val;
+    return strm.str();
+  }
+  
 namespace valuePrinterInternal {
   void printValue_Default(llvm::raw_ostream& o, const Value& V) {
     clang::ASTContext& C = V.getASTContext();
