@@ -24,6 +24,7 @@
 #ifdef __cplusplus
 
 #include "cling/Interpreter/RuntimeException.h"
+#include "cling/Interpreter/ToStringConverter.h"
 
 #include <new>
 

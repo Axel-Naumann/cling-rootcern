@@ -353,6 +353,119 @@ namespace cling {
     return OR == OR_Success;
   }
 
+  static std::string getValueString(const Value &V) {
+    clang::ASTContext &C = V.getASTContext();
+    clang::QualType Ty = V.getType().getDesugaredType(C);
+    if (const clang::BuiltinType *BT
+        = llvm::dyn_cast<clang::BuiltinType>(Ty.getCanonicalType())) {
+      switch (BT->getKind()) {
+        case clang::BuiltinType::Bool: // intentional fall through
+        case clang::BuiltinType::Char_U: // intentional fall through
+        case clang::BuiltinType::Char_S: // intentional fall through
+        case clang::BuiltinType::SChar: // intentional fall through
+        case clang::BuiltinType::Short: // intentional fall through
+        case clang::BuiltinType::Int: // intentional fall through
+        case clang::BuiltinType::Long: // intentional fall through
+        case clang::BuiltinType::LongLong: {
+          std::ostringstream strm;
+          strm << V.getLL();
+          return strm.str();
+        }
+          break;
+        case clang::BuiltinType::UChar: // intentional fall through
+        case clang::BuiltinType::UShort: // intentional fall through
+        case clang::BuiltinType::UInt: // intentional fall through
+        case clang::BuiltinType::ULong: // intentional fall through
+        case clang::BuiltinType::ULongLong: {
+          std::ostringstream strm;
+          strm << V.getULL();
+          return strm.str();
+        }
+          break;
+        case clang::BuiltinType::Float: {
+          std::ostringstream strm;
+          strm << V.getFloat();
+          return strm.str();
+        }
+          break;
+        case clang::BuiltinType::Double: {
+          std::ostringstream strm;
+          strm << V.getDouble();
+          return strm.str();
+        }
+          break;
+        case clang::BuiltinType::LongDouble: {
+          std::ostringstream strm;
+          strm << V.getLongDouble();
+          return strm.str();
+        }
+          break;
+        default:
+          std::ostringstream strm;
+          strm << V.getPtr();;
+          return strm.str();
+          break;
+      }
+    }
+    else if (Ty->isIntegralOrEnumerationType()) {
+      std::ostringstream strm;
+      strm << V.getLL();
+      return strm.str();
+    }
+    else if (Ty->isFunctionType()) {
+      std::ostringstream strm;
+      strm << (const void *) &V;
+      return strm.str();
+    } else if (Ty->isPointerType() || Ty->isReferenceType()
+               || Ty->isArrayType()) {
+      std::ostringstream strm;
+      strm << V.getPtr();
+      return strm.str();
+    }
+    else {
+      // struct case.
+      std::ostringstream strm;
+      strm << V.getPtr();
+      return strm.str();
+    }
+  }
+
+  static std::string getCastedValueString(const Value &V) {
+    std::ostringstream strm;
+    clang::ASTContext &C = V.getASTContext();
+    clang::QualType Ty = V.getType().getDesugaredType(C).getNonReferenceType();
+    std::string type = Ty.getAsString();
+    std::ostringstream typeWithOptDeref;
+    std::ostringstream suffix;
+
+    if (llvm::dyn_cast<clang::BuiltinType>(Ty.getCanonicalType())){
+      typeWithOptDeref << "(" << type << ")";
+    } else if (Ty->isPointerType()) {
+      if (Ty->getPointeeType()->isCharType()) {
+        typeWithOptDeref << "(" << type << ")";
+      } else {
+        typeWithOptDeref << "(void*)";
+      }
+    } else if (Ty->isArrayType()) {
+      const clang::ArrayType* ArrTy = Ty->getAsArrayTypeUnsafe();
+      clang::QualType ElementTy = ArrTy->getElementType();
+      if (Ty->isConstantArrayType()) {
+        const clang::ConstantArrayType* CArrTy = C.getAsConstantArrayType(Ty);
+        const llvm::APInt& APSize = CArrTy->getSize();
+        size_t size = (size_t)APSize.getZExtValue();
+
+        typeWithOptDeref << "(" << ElementTy.getAsString() << "(&)[" << size << "])*(void*)";
+      } else {
+        typeWithOptDeref << "(void*)";
+      }
+    } else {
+      typeWithOptDeref << "*(" << type << "*)";
+    }
+
+    strm << typeWithOptDeref.str() << getValueString(V) << suffix.str();
+    return strm.str();
+  }
+
   namespace valuePrinterInternal {
     void printValue_Default(llvm::raw_ostream& o, const Value& V);
     void printType_Default(llvm::raw_ostream& o, const Value& V);
@@ -435,32 +548,16 @@ namespace cling {
       llvm::raw_string_ostream o(typeStr);
       cling::valuePrinterInternal::printType_Default(o, *this);
     }
-    R.clear();
-    R.setLookupName(&C.Idents.get("printValue"));
-    {
-      // Could trigger deserialization of decls.
-      cling::Interpreter::PushTransactionRAII RAII(m_Interpreter);
-      SemaR.LookupQualifiedName(R, ClingNSD);
-      // We commit here because the possibly deserialized decls from the lookup
-      // will be needed by evaluate.
-    }
 
-    if (ValidAddress && hasViableCandidateToCall(R, *this)) {
-      // There is such a routine call it:
-      std::stringstream printValueSS;
-      printValueSS << "cling::printValue(";
-      printValueSS << '(' << ValueTyStr << ')' << this->getPtr() << ',';
-      printValueSS << '(' << ValueTyStr << ')' << this->getPtr() << ',';
-      printValueSS <<"(*(cling::Value*)" << this << "));";
-      Value printValueV;
-      m_Interpreter->evaluate(printValueSS.str(), printValueV);
-      assert(printValueV.isValid() && "Must return valid value.");
-      valueStr = *(std::string*)printValueV.getPtr();
-    }
-    else {
-      llvm::raw_string_ostream o(valueStr);
-      cling::valuePrinterInternal::printValue_Default(o, *this);
-    }
+    // Print out the value - invoke the printValue code
+    std::stringstream printValueSS;
+    printValueSS << "cling::printValue(";
+    printValueSS << getCastedValueString(*this);
+    printValueSS << ");";
+    Value printValueV;
+    m_Interpreter->evaluate(printValueSS.str(), printValueV);
+    assert(printValueV.isValid() && "Must return valid value.");
+    valueStr = *(std::string*)printValueV.getPtr();
 
     // print the type and the value:
     Out << typeStr + valueStr << "\n";
