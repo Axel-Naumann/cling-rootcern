@@ -17,7 +17,7 @@ set( LLVM_LINK_COMPONENTS
   objcarcopts
 )
 
-add_cling_library(clingInterpreter
+add_cling_library(clingInterpreter OBJECT
   AutoSynthesizer.cpp
   AutoloadCallback.cpp
   ASTImportSource.cpp
@@ -54,9 +54,16 @@ add_cling_library(clingInterpreter
   LINK_LIBS
   clangBasic
   clangAST
+  clangParse
+  clangCodeGen
+  clangFrontend
+  clangDriver
+  clingUtils
   )
 
-add_dependencies(clingInterpreter clangBasic clangAST)
+add_library(clingInterpreter-interface INTERFACE)
+target_sources(clingInterpreter-interface INTERFACE $<TARGET_OBJECTS:obj.clingInterpreter>)
+add_dependencies(clingInterpreter-interface clangBasic clangAST)
 
 if(NOT WIN32)
 set_source_files_properties(ExceptionRTTI.cpp COMPILE_FLAGS "-fexceptions -frtti")

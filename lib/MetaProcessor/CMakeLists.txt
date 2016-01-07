@@ -6,7 +6,12 @@
 # LICENSE.TXT for details.
 #------------------------------------------------------------------------------
 
-add_cling_library(clingMetaProcessor
+set(LIBS
+  libclingInterpreter
+)
+
+
+add_cling_library(clingMetaProcessor OBJECT
   Display.cpp
   InputValidator.cpp
   MetaLexer.cpp
@@ -16,6 +21,8 @@ add_cling_library(clingMetaProcessor
 
   LINK_LIBS
   clangBasic
+  clangLex
+  clingInterpreter
   LLVMCore
   )
 
