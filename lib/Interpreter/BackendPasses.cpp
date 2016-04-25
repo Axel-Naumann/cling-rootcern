@@ -137,12 +137,12 @@ void BackendPasses::CreatePasses(const CodeGenOptions &CGOpts,
   }
 
   // Set up the per-module pass manager.
-  //m_MPM.reset(new legacy::PassManager());
+  m_MPM.reset(new legacy::PassManager());
   //m_MPM->add(createTargetTransformInfoWrapperPass(getTargetIRAnalysis()));
   //if (!CGOpts.RewriteMapFiles.empty())
   //  addSymbolRewriterPass(CGOpts, m_MPM);
 
-  //m_PMBuilder->populateModulePassManager(*m_MPM);
+  m_PMBuilder->populateModulePassManager(*m_MPM);
 }
 
 void BackendPasses::runOnModule(Module& M) {
