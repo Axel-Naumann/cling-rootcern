@@ -122,6 +122,8 @@ public:
     return getExeMM()->getPointerToNamedFunction(Name, AbortOnFailure);
   }
 
+  using llvm::RuntimeDyld::MemoryManager::notifyObjectLoaded;
+
   void notifyObjectLoaded(ExecutionEngine *EE,
                           const object::ObjectFile &O) override {
     return getExeMM()->notifyObjectLoaded(EE, O);
