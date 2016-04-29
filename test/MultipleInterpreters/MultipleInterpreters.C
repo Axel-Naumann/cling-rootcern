@@ -20,7 +20,7 @@ cling::Interpreter ChildInterp(*gCling, 1, argV);
 
 //Declare something in the parent interpreter
 .rawInput 1
-void foo(){ printf("foo(void)\n"); }
+int foo(){ return 42; }
 .rawInput 0
 // OR
 //gCling->declare("void foo(){ llvm::outs() << \"foo(void)\\n\"; }");
@@ -30,7 +30,7 @@ ChildInterp.declare("void foo(int i){ printf(\"foo(int) = %d\\n\", i); }");
 
 //Then execute it from the child interpreter
 ChildInterp.execute("foo()");
-//CHECK:foo(void)
+//CHECK:(int) 42
 
 //Check if function overloading works
 ChildInterp.execute("foo(1)");
