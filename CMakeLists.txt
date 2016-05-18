@@ -227,7 +227,9 @@ file (STRINGS "VERSION" CLING_VERSION)
 string(REGEX REPLACE "([0-9]).[0-9]+~[a-zA-Z]+" "\\1" CLING_VERSION_MAJOR ${CLING_VERSION})
 string(REGEX REPLACE "[0-9].([0-9]+)~[a-zA-Z]+" "\\1" CLING_VERSION_MINOR ${CLING_VERSION})
 
-if(${PROJECT_NAME} MATCHES "ROOT")
+message(STATUS "AXEL: ${ROOT_BINARY_DIR}")
+if(DEFINED ROOT_BINARY_DIR)
+  # Building as part of ROOT.
   set(CLING_VERSION ROOT_${CLING_VERSION})
 endif()
 message(STATUS "Cling version (from VERSION file): ${CLING_VERSION}")
@@ -325,17 +327,20 @@ endmacro(add_cling_executable)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-# this is needed when building Cling as part of ROOT:
-include_directories(BEFORE
-  ${CMAKE_CURRENT_BINARY_DIR}/../llvm/src/tools/clang/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../llvm/src/tools/clang/include
-  )
-
-# and this when building Cling standalone:
-include_directories(BEFORE
-  ${CMAKE_CURRENT_BINARY_DIR}/../clang/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../clang/include
-  )
+if(DEFINED ROOT_BINARY_DIR)
+  # Building as part of ROOT.
+  # this is needed when building Cling as part of ROOT:
+  include_directories(BEFORE
+    ${CMAKE_CURRENT_BINARY_DIR}/../llvm/src/tools/clang/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../llvm/src/tools/clang/include
+    )
+else()
+  # and this when building Cling standalone:
+  include_directories(BEFORE
+    ${CMAKE_CURRENT_BINARY_DIR}/../clang/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../clang/include
+    )
+endif()
 
 include_directories(BEFORE
   ${CMAKE_CURRENT_BINARY_DIR}/include
