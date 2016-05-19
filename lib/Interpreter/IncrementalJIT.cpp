@@ -207,6 +207,8 @@ IncrementalJIT::getSymbolAddressWithoutMangling(llvm::StringRef Name,
                                 llvm::JITSymbolFlags::Exported);
   }
   if (AlsoInProcess) {
+    if (Name == "_ZSt16forward_as_tupleIJSsEESt5tupleIJDpOT_EES3_")
+      return llvm::orc::JITSymbol(nullptr);
     if (RuntimeDyld::SymbolInfo SymInfo = m_ExeMM->findSymbol(Name))
       return llvm::orc::JITSymbol(SymInfo.getAddress(),
                                   llvm::JITSymbolFlags::Exported);
