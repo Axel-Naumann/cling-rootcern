@@ -213,6 +213,9 @@ IncrementalJIT::getSymbolAddressWithoutMangling(llvm::StringRef Name,
       return llvm::orc::JITSymbol(SymInfo.getAddress(),
                                   llvm::JITSymbolFlags::Exported);
   }
+  auto SymMapI = m_SymbolMap.find(Name);
+  if (SymMapI != m_SymbolMap.end())
+    return SymMapI->second;
   if (auto Sym = m_LazyEmitLayer.findSymbol(Name, false))
     return Sym;
 
@@ -253,6 +256,13 @@ size_t IncrementalJIT::addModules(std::vector<llvm::Module*>&& modules) {
     [&](const std::string &S) {
       if (S == "_ZSt16forward_as_tupleIJSsEESt5tupleIJDpOT_EES3_")
         return RuntimeDyld::SymbolInfo(nullptr);
+
+      auto SymMapI = m_SymbolMap.find(S);
+      if (SymMapI != m_SymbolMap.end()) {
+        llvm::orc::JITSymbol &Sym = SymMapI->second;
+        return RuntimeDyld::SymbolInfo((uint64_t)Sym.getAddress(),
+                                       Sym.getFlags());
+      }
       return m_ExeMM->findSymbol(S);
     } );
 
