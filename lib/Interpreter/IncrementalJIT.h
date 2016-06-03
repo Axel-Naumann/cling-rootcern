@@ -85,10 +85,10 @@ class IncrementalJIT {
           auto NameOrError = Symbol.getName();
           assert(NameOrError);
           auto Name = NameOrError.get();
-          auto& OldSym = m_JIT.m_SymbolMap[Name];
-          if (!OldSym) {
+          if (m_JIT.m_SymbolMap.find(Name) == m_JIT.m_SymbolMap.end()) {
             llvm::orc::JITSymbol Sym = m_JIT.m_CompileLayer.findSymbolIn(H, Name, true);
-            OldSym = Sym;
+            if (Sym.getAddress())
+              m_JIT.m_SymbolMap[Name] = Sym;
           }
         }
       }
