@@ -58,19 +58,40 @@ class IncrementalJIT {
         LoadedObjInfoListT;
 
     NotifyObjectLoadedT(IncrementalJIT &jit) : m_JIT(jit) {}
+    NotifyObjectLoadedT(const NotifyObjectLoadedT&) = delete;
+     NotifyObjectLoadedT(NotifyObjectLoadedT&&) = default;
 
     void operator()(llvm::orc::ObjectLinkingLayerBase::ObjSetHandleT H,
                     const ObjListT &Objects,
-                    const LoadedObjInfoListT &Infos) const {
+                    const LoadedObjInfoListT &Infos) {
       m_JIT.m_UnfinalizedSections[H]
         = std::move(m_JIT.m_SectionsAllocatedSinceLastLoad);
       m_JIT.m_SectionsAllocatedSinceLastLoad = SectionAddrSet();
       assert(Objects.size() == Infos.size() &&
              "Incorrect number of Infos for Objects.");
-      if (auto GDBListener = m_JIT.m_GDBListener) {
-        for (size_t I = 0, N = Objects.size(); I < N; ++I)
-          GDBListener->NotifyObjectEmitted(*Objects[I]->getBinary(),
-                                           *Infos[I]);
+
+      for (size_t I = 0, N = Objects.size(); I < N; ++I) {
+        // From JuliaJIT, adapted.
+        const auto& Object = Objects[I]->getBinary();
+        llvm::object::OwningBinary<llvm::object::ObjectFile> SavedObject
+          = Infos[I]->getObjectForDebug(*Object);
+
+        // If the debug object is unavailable, save (a copy of) the original
+        // object for our backtraces
+        if (!SavedObject.getBinary()) {
+          // This is unfortunate, but there doesn't seem to be a way to take
+          // ownership of the original buffer
+          auto NewBuffer = llvm::MemoryBuffer::getMemBufferCopy(Object->getData(), Object->getFileName());
+          auto NewObj = llvm::object::ObjectFile::createObjectFile(NewBuffer->getMemBufferRef());
+          assert(NewObj && "Failed to create JIT object file.");
+          SavedObject = llvm::object::OwningBinary<llvm::object::ObjectFile>(std::move(*NewObj), std::move(NewBuffer));
+        }
+
+        if (auto GDBListener = m_JIT.m_GDBListener) {
+          GDBListener->NotifyObjectEmitted(*SavedObject.getBinary(), *Infos[I]);
+        }
+
+        SavedObjects.push_back(std::move(SavedObject));
       }
 
       for (const auto& Object: Objects) {
@@ -96,6 +117,8 @@ class IncrementalJIT {
 
   private:
     IncrementalJIT &m_JIT;
+    std::vector<llvm::object::OwningBinary<llvm::object::ObjectFile>>
+       SavedObjects;
   };
 
   typedef llvm::orc::ObjectLinkingLayer<NotifyObjectLoadedT> ObjectLayerT;
@@ -109,8 +132,6 @@ class IncrementalJIT {
   ///\brief The RTDyldMemoryManager used to communicate with the
   /// IncrementalExecutor to handle missing or special symbols.
   std::unique_ptr<llvm::RTDyldMemoryManager> m_ExeMM;
-
-  NotifyObjectLoadedT m_NotifyObjectLoaded;
 
   ObjectLayerT m_ObjectLayer;
   CompileLayerT m_CompileLayer;

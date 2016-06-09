@@ -862,7 +862,7 @@ namespace {
 
     // Set CodeGen options
     // want debug info
-    //CI->getCodeGenOpts().setDebugInfo(clang::CodeGenOptions::FullDebugInfo);
+    CI->getCodeGenOpts().setDebugInfo(clang::codegenoptions::LimitedDebugInfo);
     // CI->getCodeGenOpts().EmitDeclMetadata = 1; // For unloading, for later
     CI->getCodeGenOpts().CXXCtorDtorAliases = 0; // aliasing the complete
                                                  // ctor to the base ctor causes
