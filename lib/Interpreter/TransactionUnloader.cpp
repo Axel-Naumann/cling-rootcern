@@ -428,7 +428,8 @@ namespace clang {
            iter = iter->getPreviousDecl()) {
         auto declcxx = dyn_cast<CXXRecordDecl>(iter);
         assert(declcxx && "Only CXXRecordDecl have DefinitionData");
-        declcxx->DefinitionData = canon;
+        declcxx->DefinitionData = canon->DefinitionData;
+        canon->DefinitionData = 0;
       }
     }
 
