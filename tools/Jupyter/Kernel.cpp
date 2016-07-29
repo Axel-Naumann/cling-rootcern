@@ -15,6 +15,8 @@
 #include "cling/Interpreter/Value.h"
 #include "cling/MetaProcessor/MetaProcessor.h"
 
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <map>
@@ -91,6 +93,18 @@ namespace cling {
   } // namespace Jupyter
 } // namespace cling
 
+
+// This function isn't referenced outside its translation unit, but it
+// can't use the "static" keyword because its address is used for
+// GetMainExecutable (since some platforms don't support taking the
+// address of main, and some platforms can't implement GetMainExecutable
+// without being given the address of a function in the main executable).
+std::string GetJupyterSOPath(const char *Argv0) {
+  // This just needs to be some symbol in the binary
+  void *MainAddr = (void*) (intptr_t) GetJupyterSOPath;
+  return llvm::sys::fs::getMainExecutable(Argv0, MainAddr);
+}
+
 extern "C" {
 ///\{
 ///\name Cling4CTypes
@@ -102,8 +116,21 @@ using TheMetaProcessor = void;
 /// Create an interpreter object.
 TheMetaProcessor*
 cling_create(int argc, const char *argv[], const char* llvmdir, int pipefd) {
+  // Determine -I to find cling headers.
+  std::vector<const char*> argvWithI(&argv[0], &argv[0] + argc);
+
+  std::string ClingIncDir = "-I";
+  std::string JupyterSOPath = GetJupyterSOPath(argv[0]);
+  if (!JupyterSOPath.empty()) {
+    // go from .../lib/libJupyter.so to .../include:
+    using namespace llvm::sys::path;
+    std::string InstDir = parent_path(parent_path(JupyterSOPath));
+    ClingIncDir += InstDir + get_separator().str() + "include";
+    argvWithI.push_back(ClingIncDir.c_str());
+  }
+
   pipeToJupyterFD = pipefd;
-  auto I = new cling::Interpreter(argc, argv, llvmdir);
+  auto I = new cling::Interpreter(argvWithI.size(), &argvWithI[0], llvmdir);
   return new cling::MetaProcessor(*I, llvm::errs());
 }
 
