@@ -136,6 +136,7 @@ if (UNIX)
           execute_process(COMMAND xcrun -f ${_name}
                           OUTPUT_VARIABLE CLING_CXX_FOUND
                           OUTPUT_STRIP_TRAILING_WHITESPACE)
+message(WARNING "AXEL: `xcrun -f ${_name}` OUTPUT ---${CLING_CXX_FOUND}---")
           stripNewLine("${CLING_CXX_FOUND}" CLING_CXX_FOUND)
         else()
           find_program(_cling_cxx_path "${_name}")
